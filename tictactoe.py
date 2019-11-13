@@ -1,4 +1,5 @@
 import copy
+from utils import Log, Game, Agent
 
 def checkGameOver(board, logger): 
     for i in range(3):
@@ -41,48 +42,17 @@ def checkGameOver(board, logger):
 
     return False, 0 
 
-class Log:
-    def __init__(self, output_level):
-        # 0 = Everything
-        # 1 = Debug 
-        # 2 = Fatal Only 
-        self.output = output_level
-
-    def e(self, s):
-        if self.output <= 0:
-            print(s) 
-
-    def d(self, s): 
-        if self.output <= 1:
-            print(s)
-
-    def f(self, s): 
-        if self.output <= 2: 
-            print(s)
-
-
-class Game: 
+class TicTacToe(Game): 
     def __init__(self, agentOne, agentTwo, logger):
-        self.__init_state =  [[0]*3 for _ in range(3)]
-        
+        super().__init__(agentOne, agentTwo, logger) 
+
+        self._init_state =  [[0]*3 for _ in range(3)]
+        # self._max_turn = 9
         self.dim = 3 
-        self.board = copy.deepcopy(self.__init_state)
-        self.currPlayer = 0
-        self.currTurn = 0
-        self.agentOne = agentOne 
-        self.agentTwo = agentTwo
-        self.logger = logger
+        self.board = copy.deepcopy(self._init_state)
     
     def __str__(self):
-        s = "".join([f"{x[0]} {x[1]} {x[2]}" + "\n" for x in self.board])
-        return s
-
-    def reset(self): 
-        self.logger.e("Resetting...")
-        self.currPlayer = 0
-        self.currTurn = 0
-        self.board = copy.deepcopy(self.__init_state)
-
+        return "".join([f"{x[0]} {x[1]} {x[2]}" + "\n" for x in self.board])
 
     def makeMove(self, action):
         # Assumes the move is valid
@@ -93,26 +63,10 @@ class Game:
     def checkGameOver(self):
         checkGameOver(self.board, self.logger)
 
-    def play(self):
-        while self.checkGameOver() != True and self.currTurn != 9:
-            self.logger.e(self)
-            if self.currPlayer == 0:
-                move = self.agentOne.getMove(self.board)
-                self.currPlayer = 1
-            else: 
-                move = self.agentTwo.getMove(self.board)
-                self.currPlayer = 0
-            isValid = self.makeMove(move)
-            if not isValid: 
-                self.logger.f("not a valid move")
-            self.currTurn += 1
-        self.logger.e(self)
-        gameResults = self.checkGameOver()
-        self.logger.d(gameResults)
-        return gameResults 
-
-class ValueAgent():
+class ValueAgent(Agent):
     def __init__(self, playerNum, valueFunction): 
+        super().__init__(playerNum)
+
         self.valueFunction = valueFunction
     
     def getMove(self, board): 
@@ -120,20 +74,17 @@ class ValueAgent():
         return self.convert(action) 
 
     def convert(self, action):
-        return (action % 3, action // 3)
+        return (action % self.dim, action // self.dim)
 
-class DumbAgent(): 
-    def __init__(self, playerNum): 
-        self.playerNum = playerNum
-
+class DumbAgent(Agent): 
     def getMove(self, board): 
-        for i in range(3):
-            for j in range(3):
+        for i in range(self.dim):
+            for j in range(self.dim):
                 if board[i][j] == 0:
                     return (i, j)
 
 if __name__ == "__main__":
-    game = Game(DumbAgent(0), DumbAgent(1), Log(0))
+    game = TicTacToe(DumbAgent(0), DumbAgent(1), Log(0))
     game.play()
     game.reset()
     game.play()
