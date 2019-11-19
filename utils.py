@@ -29,6 +29,7 @@ class Game(ABC):
         pass 
 
     def play(self):
+        print("Starting game...")
         while not self.checkGameOver() and self.currTurn != self._max_turn:
             self.logger.e(self)
             if self.currPlayer == 0:
@@ -44,6 +45,7 @@ class Game(ABC):
             if not isValid: 
                 self.logger.f("not a valid move")
             self.currTurn += 1
+        print("Game Ended!")
         self.logger.e(self)
         gameResults = self.checkGameOver()
         self.logger.d(gameResults)
@@ -55,6 +57,10 @@ class Game(ABC):
 
     @abstractmethod
     def checkGameOver(self): 
+        pass 
+
+    @abstractmethod
+    def getAllActions(self): 
         pass 
 
 class Log:

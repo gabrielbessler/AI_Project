@@ -6,50 +6,76 @@ import pygame
 import os, sys 
 from pygame.locals import * 
 import threading, time, logging
+import argparse 
 
-# TODO - modify for n in a row, and for 3D
-def checkGameOver(board, logger, dimension): 
-    board = board[0]
-    for i in range(3):
-        inARow_V = True
-        inARow_H = True
-        startingPiece_H = board[i][0]
-        startingPiece_V = board[0][i]
-        for j in range(1, 3):
-            if inARow_H and board[i][j] != startingPiece_H:
-                inARow_H = False
-            if inARow_V and board[j][i] != startingPiece_V:
-                inARow_V = False
-                break 
-            
-        if inARow_V and startingPiece_V != 0:
-            logger.d(f"Vertical: {i}")
-            return True, startingPiece_V
+def checkGameOver(board, logger, n): 
+    zdmin = len(board)
+    dim = len(board[0])
 
-        if inARow_H and startingPiece_H != 0:
-            logger.d(f"Horizontal: {i}")
-            return True, startingPiece_H
+    def isValid(pos):
+        if pos[0] >= zdmin or pos[1] >= dim or pos[2] >= dim: 
+            return False  
+        
+        return True 
+
+    # Iterate through all starting position 
+    for k in range(zdmin):
+        for i in range(dim):
+            for j in range(dim):
+                current = board[k][i][j]
+                if current == 0: 
+                    continue 
+                horiz = True
+                vert = True
+                depth = True
+                diagOne = True 
+                diagTwo = True
+                diagThree = True
+                diagFour = True 
+                diagFive = True 
+                diagSix = True 
+
+                for z in range(1, n):
+                    pos = (k, i, j+z)
+                    if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
+                        horiz = False 
+                    
+                    pos = (k, i+z, j)
+                    if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
+                        vert = False 
+                    
+                    pos = (k+z, i, j)
+                    if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
+                        depth = False 
+                    
+                    pos = (k, i+n, j+n)
+                    if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
+                        diagOne = False 
+
+                    pos = (k, i-n, j+n)
+                    if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
+                        diagTwo = False 
+
+                    pos = (k + n, i + n, j)
+                    if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
+                        diagThree = False 
+                    
+                    pos = (k + n, i - n, j)
+                    if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
+                        diagFour = False
+
+                    pos = (k + n, i + n, j + n)
+                    if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
+                        diagFive = False 
+                    
+                    pos = (k + n, i - n, j + n)
+                    if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
+                        diagSix = False 
+
+                if horiz or vert or depth or diagOne or diagTwo or diagThree or diagFour or diagFive or diagSix:
+                    return current 
     
-    diagOne = True
-    diagTwo = True
-    diagOneStarting = board[0][0]
-    diagTwoStarting = board[2][2]
-    for i in range(1, 3):
-        if diagOne and board[i][i] != diagOneStarting:
-            diagOne = False
-        if diagTwo and board[2-i][2-i] != diagTwoStarting:
-            diagTwo = False
-
-    if diagOne and diagOneStarting!= 0: 
-        logger.d(f"Diag One")
-        return True
-    
-    if diagTwo and diagTwoStarting!= 0: 
-        logger.d(f"Diag Two")
-        return True
-
-    return False
-
+    return 0 
 
 class TicTacToe(Game): 
     def __init__(self, agentOne, agentTwo, logger, config): 
@@ -65,14 +91,26 @@ class TicTacToe(Game):
         self._max_turn = self.dim ** 2 
         self.config = config
     
+    def getAllActions(self):
+        actions = [] 
+        zdim = len(self.board) 
+        dim = len(self.board[0])
+        for k in range(zdim):
+            for i in range(dim):
+                for j in range(dim):
+                    if self.board[k][i][j] == 0:
+                        actions.append((k, i ,j))
+
+        return actions
+
     def display(self): 
         def display_procedure():
             WIDTH = 500 
             HEIGHT = 500
             MARGIN = 5 
 
-            TILE_WIDTH = WIDTH / self.dim
-            TILE_HEIGHT = HEIGHT / self.dim
+            TILE_WIDTH = WIDTH // self.dim
+            TILE_HEIGHT = HEIGHT // self.dim
 
             HEIGHT += (self.dim + 1) * MARGIN
             WIDTH += (self.dim + 1) * MARGIN
@@ -97,20 +135,36 @@ class TicTacToe(Game):
 
                 for i in range(len(self.board[0])):
                     for j in range(len(self.board[0][i])):
-                        color = (255, 255, 255) 
-                        if self.board[0][i][j] == 1:
-                            color = (0, 255, 0)
-                        elif self.board[0][i][j] == 2: 
-                            color = (255, 0, 0)
-
                         pos = [(TILE_WIDTH + MARGIN) * j + MARGIN,
                                (TILE_HEIGHT + MARGIN) * i + MARGIN,
                                TILE_WIDTH,
                                TILE_HEIGHT]
-                        pygame.draw.rect(screen,
-                                         color,
-                                         pos)
+                        color = (255, 255, 255) 
+                        pygame.draw.rect(screen, color, pos)
 
+                        if self.board[0][i][j] == 1:
+                            color = (255, 0, 0)
+                            pos = [(TILE_WIDTH + MARGIN) * (j) + MARGIN,
+                               (TILE_HEIGHT + MARGIN) * (i+.33) + MARGIN,
+                               TILE_WIDTH,
+                               TILE_HEIGHT//3]
+                            pygame.draw.rect(screen, color, pos)
+                            pos = [(TILE_WIDTH + MARGIN) * (j+.33) + MARGIN,
+                               (TILE_HEIGHT + MARGIN) * (i) + MARGIN,
+                               TILE_WIDTH//3,
+                               TILE_HEIGHT]
+                            pygame.draw.rect(screen, color, pos)
+                        elif self.board[0][i][j] == 2: 
+                            color2 = (0, 0, 255)
+                            pygame.draw.circle(screen,
+                                            color2, 
+                                            (int((j+0.5)*(TILE_WIDTH+MARGIN)),
+                                            int((i+0.5)*(TILE_HEIGHT+MARGIN))), TILE_HEIGHT//2 - MARGIN//2)
+                            pygame.draw.circle(screen,
+                                            color, 
+                                            (int((j+0.5)*(TILE_WIDTH+MARGIN)),
+                                            int((i+0.5)*(TILE_HEIGHT+MARGIN))), TILE_HEIGHT//2 - MARGIN//2 - 4)
+                            #                 TILE_HEIGHT)
 
                 clock.tick(60) # Make sure our game doesn't run faster than 60fps 
                 pygame.display.flip() # Update the display.
@@ -118,8 +172,6 @@ class TicTacToe(Game):
         x = threading.Thread(target=display_procedure)
         x.start() 
         
-        
-
     def reset_board(self): 
         if self.threeDims:
             self.board = [copy.deepcopy(self._init_state) for _ in range(self.dim)]
@@ -137,41 +189,41 @@ class TicTacToe(Game):
             return "".join([" ".join(str(y) for y in x) + "\n" for x in self.board[0]])
 
     def makeMove(self, action):
-        # TODO: update for 3 dims 
         # Assumes the move is valid
         pieceToPlay = 1 if self.currPlayer == 0 else 2
-        self.board[0][action[0]][action[1]] = pieceToPlay
+        self.board[action[0]][action[1]][action[2]] = pieceToPlay
         return True
 
     def checkGameOver(self):
         return self.gameOverChecker(self.board, self.logger)
 
 class ValueAgent(Agent):
-    def __init__(self, playerNum, valueFunction): 
+    def __init__(self, playerNum, valueFunction, dim): 
         super().__init__(playerNum)
 
         self.valueFunction = valueFunction
+        self.dim = dim 
     
     def getMove(self, board): 
         action = self.valueFunction(board)
         return self.convert(action) 
 
     def convert(self, action):
-        return (action % self.dim, action // self.dim)
+        return (0, action % self.dim, action // self.dim)
 
 class DumbAgent(Agent): 
-    # TODO: update for 3 dims 
     def getMove(self, board): 
         dim = len(board[0])
-        board = board[0]
-        for i in range(dim):
-            for j in range(dim):
-                if board[i][j] == 0:
-                    return (i, j)
+        zdim = len(board)
+        for k in range(zdim):
+            for i in range(dim):
+                for j in range(dim):
+                    if board[k][i][j] == 0:
+                        return (k, i, j)
 
-threeInARow = partial(checkGameOver, dimension=3)
-fourInARow = partial(checkGameOver, dimension=4)
-fiveInARow = partial(checkGameOver, dimension=5)
+threeInARow = partial(checkGameOver, n=3)
+fourInARow = partial(checkGameOver, n=4)
+fiveInARow = partial(checkGameOver, n=5)
 
 def defaultTurnChooser(currPlayer):
     '''
@@ -228,9 +280,16 @@ class TicTacToeConfig:
         self.title = "TicTacToe"
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--display', help='Print more data', action='store_true')
+    args = parser.parse_args()
+
+    display = args.display
+
     game = BigTicTacToe(DumbAgent(0), DumbAgent(1), Log(0))
-    game.display()
-    time.sleep(2)
+    if display:
+        game.display()
+        time.sleep(2)
     game.play()
     game.reset()
     game.play()
