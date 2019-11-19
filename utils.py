@@ -10,28 +10,36 @@ class Agent(ABC):
         pass 
 
 class Game(ABC):
-    def __init__(self, agentOne, agentTwo, logger): 
+    def __init__(self, agentOne, agentTwo, logger, turnChooser): 
         self.currPlayer = 0
         self.currTurn = 0
         self.agentOne = agentOne 
         self.agentTwo = agentTwo
         self.logger = logger
+        self.turnChooser = turnChooser
 
     def reset(self): 
         self.logger.e("Resetting...")
         self.currPlayer = 0
         self.currTurn = 0
-        self.board = copy.deepcopy(self._init_state)
+        self.reset_board()
+
+    @abstractmethod
+    def reset_board(self): 
+        pass 
 
     def play(self):
         while not self.checkGameOver() and self.currTurn != self._max_turn:
             self.logger.e(self)
             if self.currPlayer == 0:
                 move = self.agentOne.getMove(self.board)
-                self.currPlayer = 1
             else: 
                 move = self.agentTwo.getMove(self.board)
-                self.currPlayer = 0
+            print("move: " + str(move))
+
+            # Update the current player: 
+            self.currPlayer = self.turnChooser(self.currPlayer)
+
             isValid = self.makeMove(move)
             if not isValid: 
                 self.logger.f("not a valid move")
