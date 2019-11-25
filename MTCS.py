@@ -50,14 +50,28 @@ class MCTS:
             #neural net's predicted value of the root node
             #we train the neural net based on this comparison
             leaf_value = terminal_value
-            #TODO update nn so that predicted value is not so different actual score for the actions taken
+            # we then backpropagate these results back up the tree to the root
+            self.backpropagate(leaf_value)
+            pi = self.get_action_prob_dist()
+            #TODO: get probability vector distribution from number of times perfomed actions
+            #TODO update nn so that predicted value  and prob dist is not so different actual score
+            # and probabiliy distribution for the actions taken
             # don't actually know how to integrate that here
         else:
             #if it is not a terminal state, then we expand the possible children of the node,
             #and take the action dictated by the neural net
             leaf_value = self.expand_leaf(leaf_state)
-        # we then backpropagate these results back up the tree to the root
-        self.backpropagate(leaf_value)
+            # we then backpropagate these results back up the tree to the root
+            self.backpropagate(leaf_value)
+
+    def get_action_prob_dist(self):
+        prob_dist = []
+        num_total_actions = 0
+        for action in actions[self.root]:
+            num_total_actions += self.N[self.root][action]
+        for action in actions[self.root]:
+            prob_dist.append(self.N[self.root][action]/num_total_actions)
+        return prob_dist
 
     def get_terminal_value(self, state):
         self.game.board = state.board
