@@ -91,15 +91,22 @@ class TicTacToe(Game):
         self._max_turn = self.dim ** 2 
         self.config = config
     
-    def getAllActions(self):
-        actions = [] 
+    def getAllActions(self, onlyNumActions = False):
+        if onlyNumActions:
+            actions = 0
+        else: 
+            actions = [] 
+
         zdim = len(self.board) 
         dim = len(self.board[0])
         for k in range(zdim):
             for i in range(dim):
                 for j in range(dim):
                     if self.board[k][i][j] == 0:
-                        actions.append((k, i ,j))
+                        if onlyNumActions:
+                            actions += 1
+                        else: 
+                            actions.append((k, i ,j))
 
         return actions
 
