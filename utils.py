@@ -33,15 +33,15 @@ class Game(ABC):
         while not self.checkGameOver() and self.currTurn != self._max_turn:
             self.logger.e(self)
             if self.currPlayer == 0:
-                move = self.agentOne.getMove(self.board)
+                move = self.agentOne.getMove(self.board, self)
             else: 
-                move = self.agentTwo.getMove(self.board)
-            print("move: " + str(move))
+                move = self.agentTwo.getMove(self.board, self)
+            print(f"move: {str(move)} for player {self.currPlayer}")
+            isValid = self.makeMove(move)
 
             # Update the current player: 
             self.currPlayer = self.turnChooser(self.currPlayer)
 
-            isValid = self.makeMove(move)
             if not isValid: 
                 self.logger.f("not a valid move")
             self.currTurn += 1

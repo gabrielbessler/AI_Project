@@ -211,15 +211,11 @@ class ValueAgent(Agent):
         self.valueFunction = valueFunction
         self.dim = dim 
     
-    def getMove(self, board): 
-        action = self.valueFunction(board)
-        return self.convert(action) 
-
-    def convert(self, action):
-        return (0, action % self.dim, action // self.dim)
+    def getMove(self, board, game): 
+        return self.valueFunction(board, game) 
 
 class DumbAgent(Agent): 
-    def getMove(self, board): 
+    def getMove(self, board, game): 
         dim = len(board[0])
         zdim = len(board)
         for k in range(zdim):
