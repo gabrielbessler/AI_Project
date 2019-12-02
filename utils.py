@@ -29,14 +29,14 @@ class Game(ABC):
         pass 
 
     def play(self):
-        print("Starting game...")
+        self.logger.e("Starting game...")
         while not self.checkGameOver() and self.currTurn != self._max_turn:
             self.logger.e(self)
             if self.currPlayer == 0:
                 move = self.agentOne.getMove(self.board, self)
             else: 
                 move = self.agentTwo.getMove(self.board, self)
-            print(f"move: {str(move)} for player {self.currPlayer}")
+            self.logger.e(f"move: {str(move)} for player {self.currPlayer}")
             isValid = self.makeMove(move)
 
             # Update the current player: 
@@ -45,7 +45,7 @@ class Game(ABC):
             if not isValid: 
                 self.logger.f("not a valid move")
             self.currTurn += 1
-        print("Game Ended!")
+        self.logger.e("Game Ended!")
         self.logger.e(self)
         gameResults = self.checkGameOver()
         self.logger.d(gameResults)
