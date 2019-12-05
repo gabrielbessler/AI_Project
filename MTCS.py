@@ -1,6 +1,8 @@
 import math
 import tictactoe
 import copy
+import torch
+from utils import Node
 
 class MCTS:
     "Monte Carlo tree searcher."
@@ -39,7 +41,6 @@ class MCTS:
 
     def initalize(self,state):
         self.actions[state] = list()
-        print("this got initialized")
         self.policy[state] = dict()
 
     #after intialization, this will be the MAIN function that is called
@@ -59,13 +60,16 @@ class MCTS:
             #how the value of the game at this terminal compares to the
             #neural net's predicted value of the root node
             #we train the neural net based on this comparison
-            leaf_value = terminal_value
+            if terminal_value == 2:
+                leaf_value = -1
+            else:
+                leaf_value = terminal_value
             # we then backpropagate these results back up the tree to the root
             self.backpropagate(leaf_value)
             pi = self.get_action_prob_dist()
             # get probability vector distribution from number of times perfomed actions
             # update nn so that predicted value  and prob dist is not so different actual score
-            self.model.update(self.root, leaf_value, pi)
+            self.model.update(self.root.board, leaf_value, pi)
             # and probabiliy distribution for the actions taken
             # don't actually know how to integrate that here
 
@@ -77,12 +81,17 @@ class MCTS:
             self.backpropagate(leaf_value)
 
     def get_action_prob_dist(self):
-        prob_dist = []
+        threeDims = 0
+        #TODO: add 3d support
+        # if self.game.threeDims:
+        #     threeDims += 1
+        dim = len(self.game.board[0])
+        prob_dist = [0] * (dim **(2+threeDims))
         num_total_actions = 0
-        for action in actions[self.root]:
+        for action in self.actions[self.root]:
             num_total_actions += self.N[self.root][action]
-        for action in actions[self.root]:
-            prob_dist.append(self.N[self.root][action]/num_total_actions)
+        for action in self.actions[self.root]:
+            prob_dist[action[2]+dim*action[1]+dim*dim*action[0]] =(self.N[self.root][action]/num_total_actions)
         return prob_dist
 
     def get_terminal_value(self, state):
@@ -93,11 +102,11 @@ class MCTS:
     def select_leaf(self):
         current_state = self.root
         while not self.is_leaf(current_state):
-            best_action = self.choose_action[current_state]
+            best_action = self.choose_action(current_state)
             #see if we taken action before, if not, add the child to the dictionary:
             if best_action not in self.child[current_state]:
                 #gets state from new board based on action
-                simulated_state = self.simulate_action(best_action)
+                simulated_state = self.simulate_action(current_state, best_action)
                 #initializes this new state
                 self.initalize(simulated_state)
                 self.child[current_state][best_action] = simulated_state
@@ -110,8 +119,8 @@ class MCTS:
 
         return current_state
 
-    def simulate_action(self, state):
-        child = Node(copy.deepcopy(state.board))
+    def simulate_action(self, state, action):
+        child = Node(copy.deepcopy(state.board), copy.deepcopy(state.currPlayer))
         child.currPlayer = self.game.turnChooser(state.currPlayer)
         pieceToPlay = 1 if state.currPlayer == 0 else 2
         child.board[action[0]][action[1]][action[2]] = pieceToPlay
@@ -119,22 +128,33 @@ class MCTS:
 
     def is_leaf(self,state):
         #if the actions dictionary of the state is empty, then it's a leaf
-        print(f"Actions: {self.actions}", f"State: {state}")
-        for state in self.actions.keys():
-            print(state)
+        #print(f"Actions: {self.actions}", f"State: {state}")
+        # print("our state")
+        # print(state)
+        # print("the keys")
+        # for key in self.actions.keys():
+        #     print(key)
         actionList = self.actions[state]
-        print(f"ActionList: {actionList}")
+        #print(f"ActionList: {actionList}")
         return len(actionList) == 0
 
     def choose_action(self, state):
         #chooses action by UCT value
-        total_n = 0
-        for action in self.actions[state]:
+        total_n = 1
+        actionList = self.actions[state]
+        for action in actionList:
             total_n += self.N[state][action]
         action_values = dict()
-        for action in self.actions[state]:
+        for action in actionList:
             action_values[action] = self.Q[state][action] + (self.c * self.policy[state][action] * math.sqrt(math.log(total_n) / (1 + self.N[state][action])))
-        return max(action_values, key=action_values.get())
+
+        max_action = list(action_values.keys())[0]
+        max_value = action_values[max_action]
+        for action in action_values:
+            if action_values[action] > max_value:
+                max_action = action
+                max_value = action_values[max_action]
+        return max_action
 
     def expand_leaf(self, state):
         self.actions[state] = self.game.getAllActions()
@@ -150,13 +170,32 @@ class MCTS:
             self.W[state][action] = 0
             self.Q[state][action] = 0
         # fill in the policy vector for this node based on the nn
-        self.policy[state], value =  self.model.predict(state)
+        value, prior =  self.model.predict(state.board)
+        value = value[0].item()
+        prior = prior.tolist()
+        # flattening the actions into a list with the indicies of the tensor
+        # of where available actions are
+        action_locations = self.flatten_actions(self.actions[state])
+        #getting the policies from the tensor as a list
+        relevant_priors = [prior[i] for i in range(len(prior)) if i in action_locations]
+        sum_priors = sum(relevant_priors)
+        policies = [prior/sum_priors for prior in relevant_priors]
+        # merging the policies and actions of the state together as a dictionary
+        self.policy[state] = dict(zip(self.actions[state], policies))
         return value
 
-    def backpropagate(value):
-        reverse(self.path)
+    def flatten_actions(self,actions):
+        # get dim of board
+        dim = len(self.game.board[0])
+        return [(action[2]+dim*action[1]+dim*dim*action[0]) for action in actions]
+
+    def backpropagate(self, value):
+        self.path.reverse()
         while self.path:
             state, action = self.path.pop(0)
             self.N[state][action] += 1
             self.W[state][action] += value
+            # print("backprop")
+            # print(list(self.N[state].keys()))
+            # print(list(self.W[state].keys()))
             self.Q[state][action] = self.W[state][action] / self.N[state][action]

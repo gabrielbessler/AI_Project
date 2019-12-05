@@ -115,7 +115,6 @@ class TicTacToe(Game):
                             actions += 1
                         else:
                             actions.append((k, i ,j))
-
         return actions
 
     def display(self):
@@ -238,17 +237,16 @@ class AlphaZeroAgent(Agent):
         #creates a state (a Node)from the board and game
         state = Node(board, game.currPlayer)
         self.MCTS.set_root(state, game)
-        self.MCTS.perform_iterations(10)
+        self.MCTS.perform_iterations(1000)
         if not self.isExploratory:
             return max(self.MCTS.N[self.MCTS.root], key=self.MCTS.N[self.MCTS.root].get())
         else:
-            print(self.MCTS.N, self.MCTS.root)
             d = self.MCTS.N[self.MCTS.root]
-            actions = [val ** (1 / t) for val in d.values()]
+            actions = [val ** (1 / self.t) for val in d.values()]
             total = sum(actions)
-            actions = [val / total for val in actions.values()]
+            actions = [val / total for val in actions]
             i = numpy.random.choice(numpy.arange(len(actions)), p=actions)
-            return d[d.keys()[i]]
+            return list(d.keys())[i]
 
 class DumbAgent(Agent):
     def getMove(self, board, game):

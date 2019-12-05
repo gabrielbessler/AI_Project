@@ -90,10 +90,17 @@ class Node:
     Node is a single board state in our game tree.
     '''
     def __init__(self, board, currPlayer):
-        self.children = []
+#        self.children = []
 #         self.parent = None
         self.board = board
         self.currPlayer = currPlayer
 
     def __str__(self):
-        return f"{self.board} {self.currPlayer} {self.children}"
+        return f"{self.board} {self.currPlayer}"
+
+    def __eq__(self, other):
+         return (self.board,self.currPlayer) == (other.board, other.currPlayer)
+
+    def __hash__(self):
+        board = tuple([elem for plane in self.board for row in plane for elem in row])
+        return hash((board,self.currPlayer))
