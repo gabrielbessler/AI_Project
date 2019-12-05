@@ -103,7 +103,10 @@ class MCTS:
                 self.child[current_state][best_action] = simulated_state
             path_tuple = (current_state, best_action)
             self.path.append(path_tuple)
+            # actually take the action:
             current_state = self.child[current_state][best_action]
+            self.game.board = current_state.board
+            self.game.currPlayer = current_state.currPlayer
 
         return current_state
 
