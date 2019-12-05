@@ -10,21 +10,7 @@ class MCTS:
     # root_state is of type node
     # game is of type game (takes in a tictactoe game)
     # model is the nn
-    def contruct(self, root_state, game, model, c=2):
-        self.c = c
-        #setting up the initial root state
-        self.root = root_state
-        self.initalize(root_state)
-        # path of actions taken to leaf
-        self.path = []
-        #deep copy of the original game to mess with during self play
-        self.game = copy.deepcopy(game)
-        self.model = model
-
-        self.constructed = True
-
-    def __init__(self):
-        self.contructed = False
+    def __init__(self, model, c=2):
         # we get this policy from the nnet, of probabilites of actions given a state
         self.policy = dict()
         self.W = dict()  # total reward of taking action from state
@@ -33,14 +19,27 @@ class MCTS:
         self.actions = dict()  # possible actions for each state, each state corresponding to a list
         self.num_actions = dict() #number of possible actions for each state
         self.child = dict() #expanded children of each possible action for each node
+        self.c = c
+        #setting up the initial root state
+        self.root = None
+        # path of actions taken to leaf
+        self.path = []
+        #deep copy of the original game to mess with during self play
+        self.game = None
+        self.model = model
 
     #must be called every time we want to evaluate with MCTS after the intialization
     def set_root(self,state,game):
-        self.root = state
+        if self.root is None:
+            self.root = state
+            self.initalize(self.root)
+        else:
+            self.root = state
         self.game = copy.deepcopy(game)
 
     def initalize(self,state):
-        self.actions[state] = []
+        self.actions[state] = list()
+        print("this got initialized")
         self.policy[state] = dict()
 
     #after intialization, this will be the MAIN function that is called
@@ -55,7 +54,7 @@ class MCTS:
         leaf_state = self.select_leaf()
         #then, we check to see if the leaf is a terminal state
         terminal_value = self.get_terminal_value(leaf_state)
-        if ((terminal_value != 0) or ((terminal_value == 0) and (len(game.getAllActions()) == 0))):
+        if ((terminal_value != 0) or ((terminal_value == 0) and (len(self.game.getAllActions()) == 0))):
             #if it is a terminal state, then we check to see
             #how the value of the game at this terminal compares to the
             #neural net's predicted value of the root node
@@ -118,6 +117,8 @@ class MCTS:
     def is_leaf(self,state):
         #if the actions dictionary of the state is empty, then it's a leaf
         print(f"Actions: {self.actions}", f"State: {state}")
+        for state in self.actions.keys():
+            print(state)
         actionList = self.actions[state]
         print(f"ActionList: {actionList}")
         return len(actionList) == 0

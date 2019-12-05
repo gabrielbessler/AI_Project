@@ -226,13 +226,12 @@ class AlphaZeroAgent(Agent):
 # t is a float controlling degree of exploration, temperature variable
 # model is the nn for MCTS
 # isExploratory is a boolean that controls whether competitive or exploratory play
-    def __init__(self, playerNum, isExploratory, t, model, dim, mcts):
+    def __init__(self, playerNum, isExploratory, t, dim, mcts):
         super().__init__(playerNum)
         self.dim = dim
         self.t = t
         self.MCTS = mcts
         self.isExploratory = isExploratory
-        self.model = model
         print("initializing")
 
     def getMove(self, board, game):
@@ -250,12 +249,6 @@ class AlphaZeroAgent(Agent):
             actions = [val / total for val in actions.values()]
             i = numpy.random.choice(numpy.arange(len(actions)), p=actions)
             return d[d.keys()[i]]
-
-    def gameInitialized(self, game):
-        print("game initialized")
-        if self.MCTS.contructed is False:
-            state = Node(game.board, game.currPlayer)
-            self.MCTS.contruct(state, game, self.model, 2)
 
 class DumbAgent(Agent):
     def getMove(self, board, game):
