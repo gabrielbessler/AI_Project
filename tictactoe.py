@@ -1,103 +1,111 @@
 import copy
-from utils import Log, Game, Agent
+from utils import Log, Game, Agent, Node
 from random import random
-from functools import partial 
-import pygame 
-import os, sys 
-from pygame.locals import * 
+from functools import partial
+import pygame
+import os, sys
+from pygame.locals import *
 import threading, time, logging
-import argparse 
+import argparse
+import MTCS
+import numpy
 
-def checkGameOver(board, logger, n): 
+def checkGameOver(board, logger, n):
     zdmin = len(board)
     dim = len(board[0])
 
     def isValid(pos):
-        if pos[0] >= zdmin or pos[1] >= dim or pos[2] >= dim: 
-            return False  
-        
-        return True 
+        if pos[0] >= zdmin or pos[1] >= dim or pos[2] >= dim:
+            return False
 
-    # Iterate through all starting position 
+        return True
+
+    # Iterate through all starting position
     for k in range(zdmin):
         for i in range(dim):
             for j in range(dim):
                 current = board[k][i][j]
-                if current == 0: 
-                    continue 
+                if current == 0:
+                    continue
                 horiz = True
                 vert = True
                 depth = True
-                diagOne = True 
+                diagOne = True
                 diagTwo = True
                 diagThree = True
-                diagFour = True 
-                diagFive = True 
-                diagSix = True 
+                diagFour = True
+                diagFive = True
+                diagSix = True
 
                 for z in range(1, n):
                     pos = (k, i, j+z)
                     if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
-                        horiz = False 
-                    
+                        horiz = False
+
                     pos = (k, i+z, j)
                     if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
-                        vert = False 
-                    
+                        vert = False
+
                     pos = (k+z, i, j)
                     if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
-                        depth = False 
-                    
+                        depth = False
+
                     pos = (k, i+n, j+n)
                     if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
-                        diagOne = False 
+                        diagOne = False
 
                     pos = (k, i-n, j+n)
                     if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
-                        diagTwo = False 
+                        diagTwo = False
 
                     pos = (k + n, i + n, j)
                     if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
-                        diagThree = False 
-                    
+                        diagThree = False
+
                     pos = (k + n, i - n, j)
                     if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
                         diagFour = False
 
                     pos = (k + n, i + n, j + n)
                     if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
-                        diagFive = False 
-                    
+                        diagFive = False
+
                     pos = (k + n, i - n, j + n)
                     if not isValid(pos) or board[pos[0]][pos[1]][pos[2]] != current:
-                        diagSix = False 
+                        diagSix = False
 
                 if horiz or vert or depth or diagOne or diagTwo or diagThree or diagFour or diagFive or diagSix:
-                    return current 
-    
-    return 0 
+                    return current
 
-class TicTacToe(Game): 
-    def __init__(self, agentOne, agentTwo, logger, config): 
-        super().__init__(agentOne, agentTwo, logger, config.turnChooser) 
+    return 0
+
+class TicTacToe(Game):
+    def __init__(self, agentOne, agentTwo, logger, config):
+        super().__init__(agentOne, agentTwo, logger, config.turnChooser)
 
         self.threeDims = config.threeDims
-        self.dim = config.dimension 
+        self.dim = config.dimension
         self._init_state =  [[0]*self.dim for _ in range(self.dim)]
         self.reset_board()
-        # self.board[0] is the first layer, self.board[1] is the second layer, and 
-        # self.board[2] is the third layer 
+        # self.board[0] is the first layer, self.board[1] is the second layer, and
+        # self.board[2] is the third layer
         self.gameOverChecker = config.gameOverChecker
-        self._max_turn = self.dim ** 2 
+        self._max_turn = self.dim ** 2
         self.config = config
-    
+
+        if agentOne is not None:
+            self.agentOne.gameInitialized(self)
+
+        if agentTwo is not None:
+            self.agentTwo.gameInitialized(self)
+
     def getAllActions(self, onlyNumActions = False):
         if onlyNumActions:
             actions = 0
-        else: 
-            actions = [] 
+        else:
+            actions = []
 
-        zdim = len(self.board) 
+        zdim = len(self.board)
         dim = len(self.board[0])
         for k in range(zdim):
             for i in range(dim):
@@ -105,16 +113,16 @@ class TicTacToe(Game):
                     if self.board[k][i][j] == 0:
                         if onlyNumActions:
                             actions += 1
-                        else: 
+                        else:
                             actions.append((k, i ,j))
 
         return actions
 
-    def display(self): 
+    def display(self):
         def display_procedure():
-            WIDTH = 500 
+            WIDTH = 500
             HEIGHT = 500
-            MARGIN = 5 
+            MARGIN = 5
 
             TILE_WIDTH = WIDTH // self.dim
             TILE_HEIGHT = HEIGHT // self.dim
@@ -127,15 +135,15 @@ class TicTacToe(Game):
             pygame.display.set_caption(self.config.title)
             # pygame.mouse.set_visible(0)
 
-            clock = pygame.time.Clock() 
+            clock = pygame.time.Clock()
             while True:
                 for event in pygame.event.get():
                     if event.type == QUIT:
                         return
                     elif event.type == pygame.MOUSEBUTTONDOWN:
-                        pos = pygame.mouse.get_pos() 
+                        pos = pygame.mouse.get_pos()
                         column = pos[0] // (TILE_WIDTH + MARGIN)
-                        row = pos[1] // (TILE_HEIGHT + MARGIN) 
+                        row = pos[1] // (TILE_HEIGHT + MARGIN)
                         print("Click", pos, "Grid Coords: ", row, column)
 
                 screen.fill((0, 0, 0))
@@ -146,7 +154,7 @@ class TicTacToe(Game):
                                (TILE_HEIGHT + MARGIN) * i + MARGIN,
                                TILE_WIDTH,
                                TILE_HEIGHT]
-                        color = (255, 255, 255) 
+                        color = (255, 255, 255)
                         pygame.draw.rect(screen, color, pos)
 
                         if self.board[0][i][j] == 1:
@@ -161,38 +169,38 @@ class TicTacToe(Game):
                                TILE_WIDTH//3,
                                TILE_HEIGHT]
                             pygame.draw.rect(screen, color, pos)
-                        elif self.board[0][i][j] == 2: 
+                        elif self.board[0][i][j] == 2:
                             color2 = (0, 0, 255)
                             pygame.draw.circle(screen,
-                                            color2, 
+                                            color2,
                                             (int((j+0.5)*(TILE_WIDTH+MARGIN)),
                                             int((i+0.5)*(TILE_HEIGHT+MARGIN))), TILE_HEIGHT//2 - MARGIN//2)
                             pygame.draw.circle(screen,
-                                            color, 
+                                            color,
                                             (int((j+0.5)*(TILE_WIDTH+MARGIN)),
                                             int((i+0.5)*(TILE_HEIGHT+MARGIN))), TILE_HEIGHT//2 - MARGIN//2 - 4)
                             #                 TILE_HEIGHT)
 
-                clock.tick(60) # Make sure our game doesn't run faster than 60fps 
+                clock.tick(60) # Make sure our game doesn't run faster than 60fps
                 pygame.display.flip() # Update the display.
 
         x = threading.Thread(target=display_procedure)
-        x.start() 
-        
-    def reset_board(self): 
+        x.start()
+
+    def reset_board(self):
         if self.threeDims:
             self.board = [copy.deepcopy(self._init_state) for _ in range(self.dim)]
-        else: 
+        else:
             self.board = [copy.deepcopy(self._init_state)]
 
     def __str__(self):
-        if self.threeDims: 
+        if self.threeDims:
             s = ""
-            for layer in range(self.dim): 
+            for layer in range(self.dim):
                 s += f"Layer {layer} \n"
                 s += "".join([" ".join(str(y) for y in x) + "\n" for x in self.board[layer]])
-            return s 
-        else: 
+            return s
+        else:
             return "".join([" ".join(str(y) for y in x) + "\n" for x in self.board[0]])
 
     def makeMove(self, action):
@@ -205,17 +213,52 @@ class TicTacToe(Game):
         return self.gameOverChecker(self.board, self.logger)
 
 class ValueAgent(Agent):
-    def __init__(self, playerNum, valueFunction, dim): 
+    def __init__(self, playerNum, valueFunction, dim):
         super().__init__(playerNum)
 
         self.valueFunction = valueFunction
-        self.dim = dim 
-    
-    def getMove(self, board, game): 
-        return self.valueFunction(board, game) 
+        self.dim = dim
 
-class DumbAgent(Agent): 
-    def getMove(self, board, game): 
+    def getMove(self, board, game):
+        return self.valueFunction(board, game)
+
+class AlphaZeroAgent(Agent):
+# t is a float controlling degree of exploration, temperature variable
+# model is the nn for MCTS
+# isExploratory is a boolean that controls whether competitive or exploratory play
+    def __init__(self, playerNum, isExploratory, t, model, dim, mcts):
+        super().__init__(playerNum)
+        self.dim = dim
+        self.t = t
+        self.MCTS = mcts
+        self.isExploratory = isExploratory
+        self.model = model
+        print("initializing")
+
+    def getMove(self, board, game):
+        #creates a state (a Node)from the board and game
+        state = Node(board, game.currPlayer)
+        self.MCTS.set_root(state, game)
+        self.MCTS.perform_iterations(10)
+        if not self.isExploratory:
+            return max(self.MCTS.N[self.MCTS.root], key=self.MCTS.N[self.MCTS.root].get())
+        else:
+            print(self.MCTS.N, self.MCTS.root)
+            d = self.MCTS.N[self.MCTS.root]
+            actions = [val ** (1 / t) for val in d.values()]
+            total = sum(actions)
+            actions = [val / total for val in actions.values()]
+            i = numpy.random.choice(numpy.arange(len(actions)), p=actions)
+            return d[d.keys()[i]]
+
+    def gameInitialized(self, game):
+        print("game initialized")
+        if self.MCTS.contructed is False:
+            state = Node(game.board, game.currPlayer)
+            self.MCTS.contruct(state, game, self.model, 2)
+
+class DumbAgent(Agent):
+    def getMove(self, board, game):
         dim = len(board[0])
         zdim = len(board)
         for k in range(zdim):
@@ -230,27 +273,27 @@ fiveInARow = partial(checkGameOver, n=5)
 
 def defaultTurnChooser(currPlayer):
     '''
-    The default turn chooser just alternates between player 0 and player 1.  
+    The default turn chooser just alternates between player 0 and player 1.
     '''
-    if currPlayer == 0: 
+    if currPlayer == 0:
         return 1
-    else: 
-        return 0 
+    else:
+        return 0
 
-def randomTurnChooser(currPlayer): 
-    return round(random()) 
+def randomTurnChooser(currPlayer):
+    return round(random())
 
 def StandardTicTacToe(agentOne, agentTwo, log):
     config = TicTacToeConfig(turnChooser=defaultTurnChooser, gameOverChecker=threeInARow, dimension=3, threeDims=False)
     return TicTacToe(agentOne, agentTwo, log, config)
 
-def InverseTicTacToe(agentOne, agentTwo, log): 
-    # Inverse the result in the case of wins 
-    def gameCheck(board, log): 
-        res = threeInARow(board, log) 
-        if res == 1: 
+def InverseTicTacToe(agentOne, agentTwo, log):
+    # Inverse the result in the case of wins
+    def gameCheck(board, log):
+        res = threeInARow(board, log)
+        if res == 1:
             return 2
-        elif res == 2: 
+        elif res == 2:
             return 1
 
         return 0
@@ -258,7 +301,7 @@ def InverseTicTacToe(agentOne, agentTwo, log):
     config = TicTacToeConfig(turnChooser=defaultTurnChooser, gameOverChecker=gameCheck, dimension=3, threeDims=False)
     return TicTacToe(agentOne, agentTwo, log, config)
 
-def RandomTurnTicTacToe(agentOne, agentTwo, log): 
+def RandomTurnTicTacToe(agentOne, agentTwo, log):
     config = TicTacToeConfig(turnChooser=randomTurnChooser, gameOverChecker=threeInARow, dimension=3, threeDims=False)
     return TicTacToe(agentOne, agentTwo, log, config)
 
@@ -266,18 +309,18 @@ def FourByFourTicTacToe(agentOne, agentTwo, log):
     config = TicTacToeConfig(turnChooser=defaultTurnChooser, gameOverChecker=fourInARow, dimension=4, threeDims=False)
     return TicTacToe(agentOne, agentTwo, log, config)
 
-def FiveByFiveTicTacToe(agentOne, agentTwo, log): 
+def FiveByFiveTicTacToe(agentOne, agentTwo, log):
     config = TicTacToeConfig(turnChooser=defaultTurnChooser, gameOverChecker=fiveInARow, dimension=5, threeDims=False)
     return TicTacToe(agentOne, agentTwo, log, config)
 
-def BigTicTacToe(agentOne, agentTwo, log): 
+def BigTicTacToe(agentOne, agentTwo, log):
     config = TicTacToeConfig(turnChooser=defaultTurnChooser, gameOverChecker=fourInARow, dimension=4, threeDims=True)
     return TicTacToe(agentOne, agentTwo, log, config)
 
-class TicTacToeConfig: 
+class TicTacToeConfig:
     def __init__(self, gameOverChecker = threeInARow, turnChooser = defaultTurnChooser, dimension = 3, threeDims = False):
         self.gameOverChecker = gameOverChecker
-        self.turnChooser = turnChooser 
+        self.turnChooser = turnChooser
         self.dimension = dimension
         self.threeDims = threeDims
         self.title = "TicTacToe"
