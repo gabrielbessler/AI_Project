@@ -235,11 +235,19 @@ class AlphaZeroAgent(Agent):
 
     def getMove(self, board, game):
         #creates a state (a Node)from the board and game
-        state = Node(board, game.currPlayer)
+        state = Node(copy.deepcopy(board), copy.deepcopy(game.currPlayer))
         self.MCTS.set_root(state, game)
         self.MCTS.perform_iterations(1000)
         if not self.isExploratory:
-            return max(self.MCTS.N[self.MCTS.root], key=self.MCTS.N[self.MCTS.root].get())
+            action_visits = self.MCTS.N[self.MCTS.root]
+            max_action = list(action_visits.keys())[0]
+            max_visits = action_visits[max_action]
+            for action in action_visits:
+                if action_visits[action] > max_visits:
+                    max_action = action
+                    max_vists = action_visits[max_action]
+            return max_action
+
         else:
             d = self.MCTS.N[self.MCTS.root]
             actions = [val ** (1 / self.t) for val in d.values()]

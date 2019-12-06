@@ -3,6 +3,7 @@ import tictactoe
 import copy
 import torch
 from utils import Node
+import sys
 
 class MCTS:
     "Monte Carlo tree searcher."
@@ -33,10 +34,8 @@ class MCTS:
     #must be called every time we want to evaluate with MCTS after the intialization
     def set_root(self,state,game):
         if self.root is None:
-            self.root = state
-            self.initalize(self.root)
-        else:
-            self.root = state
+            self.initalize(state)
+        self.root = state
         self.game = copy.deepcopy(game)
 
     def initalize(self,state):
@@ -181,7 +180,8 @@ class MCTS:
         sum_priors = sum(relevant_priors)
         policies = [prior/sum_priors for prior in relevant_priors]
         # merging the policies and actions of the state together as a dictionary
-        self.policy[state] = dict(zip(self.actions[state], policies))
+        action_list = copy.deepcopy(self.actions[state])
+        self.policy[state] = dict(zip(action_list, policies))
         return value
 
     def flatten_actions(self,actions):
