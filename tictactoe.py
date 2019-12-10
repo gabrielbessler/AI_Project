@@ -7,7 +7,6 @@ import os, sys
 from pygame.locals import *
 import threading, time, logging
 import argparse
-import MTCS
 import numpy
 
 def checkGameOver(board, logger, n):

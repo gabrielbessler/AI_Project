@@ -42,11 +42,10 @@ class Game(ABC):
             self.logger.e(f"move: {str(move)} for player {self.currPlayer}")
             isValid = self.makeMove(move)
 
-            # Update the current player:
             self.currPlayer = self.turnChooser(self.currPlayer)
 
             if not isValid:
-                self.logger.f("not a valid move")
+                self.logger.f("Not a valid move.")
             self.currTurn += 1
         self.logger.e("Game Ended!")
         self.logger.e(self)
@@ -90,6 +89,7 @@ class Node:
     Node is a single board state in our game tree.
     '''
     def __init__(self, board, currPlayer):
+        self.children = [] 
         self.board = board
         self.currPlayer = currPlayer
 
