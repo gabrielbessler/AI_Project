@@ -15,10 +15,7 @@ def checkGameOver(board, logger, n):
     dim = len(board[0])
 
     def isValid(pos):
-        if pos[0] >= zdmin or pos[1] >= dim or pos[2] >= dim:
-            return False
-
-        return True
+        return (0 <= pos[0] < zdmin and 0 <= pos[1] < dim and 0 <= pos[2] < dim)
 
     # Iterate through all starting position
     for k in range(zdmin):
@@ -87,8 +84,8 @@ class TicTacToe(Game):
         self.dim = config.dimension
         self._init_state =  [[0]*self.dim for _ in range(self.dim)]
         self.reset_board()
-        # self.board[0] is the first layer, self.board[1] is the second layer, and
-        # self.board[2] is the third layer
+        # The first layer is self.board[0], self.board[1] is the second layer, and
+        # self.board[2] is the third layer.
         self.gameOverChecker = config.gameOverChecker
         self._max_turn = self.dim ** 2
         self.config = config
@@ -100,6 +97,11 @@ class TicTacToe(Game):
             self.agentTwo.gameInitialized(self)
 
     def getAllActions(self, onlyNumActions = False):
+        '''
+        Gets all of the available actions as 3-tuples or 
+        count the number of available actions
+        given the current board state.
+        '''
         if onlyNumActions:
             actions = 0
         else:
@@ -118,6 +120,9 @@ class TicTacToe(Game):
         return actions
 
     def display(self):
+        '''
+        Render the TicTacToe board using pygame.
+        '''
         def display_procedure():
             WIDTH = 500
             HEIGHT = 500
@@ -187,6 +192,9 @@ class TicTacToe(Game):
         x.start()
 
     def reset_board(self):
+        '''
+        Return the board to its initial state. 
+        '''
         if self.threeDims:
             self.board = [copy.deepcopy(self._init_state) for _ in range(self.dim)]
         else:
@@ -203,8 +211,12 @@ class TicTacToe(Game):
             return "".join([" ".join(str(y) for y in x) + "\n" for x in self.board[0]])
 
     def makeMove(self, action):
-        # Assumes the move is valid
-        pieceToPlay = 1 if self.currPlayer == 0 else 2
+        '''
+        Takes a move as a 3-tuple and updates the board accordingly. 
+
+        Note: This assumes the move is valid
+        '''
+        pieceToPlay = self.currPlayer + 1
         self.board[action[0]][action[1]][action[2]] = pieceToPlay
         return True
 
@@ -222,16 +234,17 @@ class ValueAgent(Agent):
         return self.valueFunction(board, game)
 
 class AlphaZeroAgent(Agent):
-# t is a float controlling degree of exploration, temperature variable
-# model is the nn for MCTS
-# isExploratory is a boolean that controls whether competitive or exploratory play
+    '''
+    t is a float controlling degree of exploration, temperature variable
+    model is the nn for MCTS
+    isExploratory is a boolean that controls whether competitive or exploratory play
+    '''
     def __init__(self, playerNum, isExploratory, t, dim, mcts):
         super().__init__(playerNum)
         self.dim = dim
         self.t = t
         self.MCTS = mcts
         self.isExploratory = isExploratory
-        print("initializing")
 
     def getMove(self, board, game):
         #creates a state (a Node)from the board and game
@@ -274,10 +287,7 @@ def defaultTurnChooser(currPlayer):
     '''
     The default turn chooser just alternates between player 0 and player 1.
     '''
-    if currPlayer == 0:
-        return 1
-    else:
-        return 0
+    return int(currPlayer == 0)
 
 def randomTurnChooser(currPlayer):
     return round(random())

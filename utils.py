@@ -90,8 +90,6 @@ class Node:
     Node is a single board state in our game tree.
     '''
     def __init__(self, board, currPlayer):
-#        self.children = []
-#         self.parent = None
         self.board = board
         self.currPlayer = currPlayer
 
