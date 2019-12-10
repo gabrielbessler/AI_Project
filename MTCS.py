@@ -23,15 +23,15 @@ class MCTS:
         self.num_actions = dict() #number of possible actions for each state
         self.child = dict() #expanded children of each possible action for each node
         self.c = c
-        #setting up the initial root state
+        # Setting up the initial root state.
         self.root = None
-        # path of actions taken to leaf
+        # Path of actions taken to leaf.
         self.path = []
-        #deep copy of the original game to mess with during self play
+        # Deep copy of the original game to mess with during self play.
         self.game = None
         self.model = model
 
-    #must be called every time we want to evaluate with MCTS after the intialization
+    # Must be called every time we want to evaluate with MCTS after the intialization.
     def set_root(self,state,game):
         if self.root is None:
             self.initalize(state)
@@ -42,28 +42,32 @@ class MCTS:
         self.actions[state] = list()
         self.policy[state] = dict()
 
-    #after intialization, this will be the MAIN function that is called
     def perform_iterations(self,numIterations):
+        '''
+        After intialization, this will be the MAIN function that is called.
+        '''
         for i in range(numIterations):
             self.perform_iteration()
 
-    #an iteration of the MCTS
     def perform_iteration(self):
-        #first, we simulate playing from the root node until we get to a leaf of the game tree.
-        #A leaf state is a state we have not explored further from.
+        '''
+        An iteration of the MCTS.
+        '''
+        # First, we simulate playing from the root node until we get to a leaf of the game tree.
+        # A leaf state is a state we have not explored further from.
         leaf_state = self.select_leaf()
-        #then, we check to see if the leaf is a terminal state
+        # Then, we check to see if the leaf is a terminal state.
         terminal_value = self.get_terminal_value(leaf_state)
         if ((terminal_value != 0) or ((terminal_value == 0) and (len(self.game.getAllActions()) == 0))):
-            #if it is a terminal state, then we check to see
-            #how the value of the game at this terminal compares to the
-            #neural net's predicted value of the root node
-            #we train the neural net based on this comparison
+            # If it is a terminal state, then we check to see
+            # how the value of the game at this terminal compares to the
+            # neural net's predicted value of the root node
+            # we train the neural net based on this comparison.
             if terminal_value == 2:
                 leaf_value = -1
             else:
                 leaf_value = terminal_value
-            # we then backpropagate these results back up the tree to the root
+            # We then backpropagate these results back up the tree to the root.
             self.backpropagate(leaf_value)
             pi = self.get_action_prob_dist()
             # get probability vector distribution from number of times perfomed actions
@@ -73,10 +77,10 @@ class MCTS:
             # don't actually know how to integrate that here
 
         else:
-            #if it is not a terminal state, then we expand the possible children of the node,
-            #and take the action dictated by the neural net
+            # If it is not a terminal state, then we expand the possible children of the node,
+            # and take the action dictated by the neural net.
             leaf_value = self.expand_leaf(leaf_state)
-            # we then backpropagate these results back up the tree to the root
+            # We then backpropagate these results back up the tree to the root.
             self.backpropagate(leaf_value)
 
     def get_action_prob_dist(self):
@@ -126,19 +130,11 @@ class MCTS:
         return child
 
     def is_leaf(self,state):
-        #if the actions dictionary of the state is empty, then it's a leaf
-        #print(f"Actions: {self.actions}", f"State: {state}")
-        # print("our state")
-        # print(state)
-        # print("the keys")
-        # for key in self.actions.keys():
-        #     print(key)
-        actionList = self.actions[state]
-        #print(f"ActionList: {actionList}")
-        return len(actionList) == 0
+        # If the actions dictionary of the state is empty, then it's a leaf.
+        return len(self.actions[state]) == 0
 
     def choose_action(self, state):
-        #chooses action by UCT value
+        # Chooses action by UCT value.
         total_n = 1
         actionList = self.actions[state]
         for action in actionList:
@@ -157,7 +153,7 @@ class MCTS:
 
     def expand_leaf(self, state):
         self.actions[state] = self.game.getAllActions()
-        #initalize the dictionary of each action's child from the state
+        # Initalize the dictionary of each action's child from the state
         # the dictionary gets filled out as we take each action.
         self.child[state] = dict()
         if len(self.actions[state]) > 0:
@@ -168,24 +164,24 @@ class MCTS:
             self.N[state][action] = 0
             self.W[state][action] = 0
             self.Q[state][action] = 0
-        # fill in the policy vector for this node based on the nn
+        # Fill in the policy vector for this node based on the nn.
         value, prior =  self.model.predict(state.board)
         value = value[0].item()
         prior = prior.tolist()
-        # flattening the actions into a list with the indicies of the tensor
-        # of where available actions are
+        # Flattening the actions into a list with the indicies of the tensor
+        # of where available actions are.
         action_locations = self.flatten_actions(self.actions[state])
-        #getting the policies from the tensor as a list
+        # Getting the policies from the tensor as a list.
         relevant_priors = [prior[i] for i in range(len(prior)) if i in action_locations]
         sum_priors = sum(relevant_priors)
         policies = [prior/sum_priors for prior in relevant_priors]
-        # merging the policies and actions of the state together as a dictionary
+        # Merging the policies and actions of the state together as a dictionary.
         action_list = copy.deepcopy(self.actions[state])
         self.policy[state] = dict(zip(action_list, policies))
         return value
 
     def flatten_actions(self,actions):
-        # get dim of board
+        # Get dim of board.
         dim = len(self.game.board[0])
         return [(action[2]+dim*action[1]+dim*dim*action[0]) for action in actions]
 
@@ -195,7 +191,4 @@ class MCTS:
             state, action = self.path.pop(0)
             self.N[state][action] += 1
             self.W[state][action] += value
-            # print("backprop")
-            # print(list(self.N[state].keys()))
-            # print(list(self.W[state].keys()))
             self.Q[state][action] = self.W[state][action] / self.N[state][action]
