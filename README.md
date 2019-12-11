@@ -1,1 +1,7 @@
-# AI_Project
+# AlphaZero TicTacToe 
+
+This was a final project for CS151: Artificial Intelligence at Harvey Mudd College. The project features an implementation of an Alpha-Zero like algorithm used to play variants of TicTacToe. A more in-depth explanation of the algorithm, our implementation, and relevant resources is included in the writeup. Note that gin addition to the AlphaZero agent, the implementation features a series of other agents for comparison. For example, there is a 'Random Agent', 'Value Agent', and 'Minimax Agent'. The random agent makes a random valid move given a board state. The Value Agent takes some value function and acts according to the greedy policy. The minimax agent can be depth-contrained or not, and can be provided a value function to use as a heuristic. 
+
+In the jupyter notebook we also include several neural network topoligies that were used to learn either just a value function or a value function and policy. Convolutional and deep neural networks were both tested at varying number of layers and with different activation functions. The jupyter notebook includes methods for training the network based on data as well as generating game trees. 
+
+The game itself is highly configurable. The size of the board, wether it is 3D or not, the mechanism by which players for each turn are chosen, and the winning condition are all fully customizable. The neural networks constructors are parametrized so that a neural network can be created and trained for an arbitrary variant. 
